@@ -25,20 +25,20 @@ jobs:
       - name: Download and install Telegram, WinRAR, VMQuickConfig & install pyautogui
         shell: pwsh
         run: |
-          # Download Telegram Desktop and install silently
+          # Download Telegram Desktop installer
           Invoke-WebRequest -Uri "https://telegram.org/dl/desktop/win64" -OutFile "$env:TEMP\Telegram.exe"
-          Start-Process -FilePath "$env:TEMP\Telegram.exe" -ArgumentList "/VERYSILENT /NORESTART" -Wait
+          Start-Process -FilePath "$env:TEMP\Telegram.exe" -ArgumentList "/VERYSILENT", "/NORESTART" -Wait
           Remove-Item "$env:TEMP\Telegram.exe"
 
-          # Download WinRAR 7.13 x64 and install silently
+          # Download WinRAR 7.13 64-bit installer
           Invoke-WebRequest -Uri "https://www.rarlab.com/rar/winrar-x64-713.exe" -OutFile "$env:TEMP\Winrar.exe"
           Start-Process -FilePath "$env:TEMP\Winrar.exe" -ArgumentList "/S" -Wait
           Remove-Item "$env:TEMP\Winrar.exe"
 
-          # Download VMQuickConfig and save to Desktop
+          # Download VMQuickConfig to desktop
           Invoke-WebRequest -Uri "https://github.com/chieunhatnang/VM-QuickConfig/releases/download/1.6.1/VMQuickConfig.exe" -OutFile "C:\Users\Public\Desktop\VMQuickConfig.exe"
 
-          # Install Python package pyautogui quietly
+          # Install pyautogui Python package quietly
           python -m pip install pyautogui --quiet
 
       - name: Install NetBird agent
