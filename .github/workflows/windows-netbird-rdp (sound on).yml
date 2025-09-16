@@ -1,4 +1,4 @@
-name: Windows RDP via NetBird (Sound ON)
+name: Windows RDP via NetBird (ON)
 
 on:
   workflow_dispatch:
