@@ -33,9 +33,8 @@ jobs:
       - name: Connect runner to NetBird using setup key
         shell: pwsh
         run: |
-          $env:Path += ";C:\Program Files\NetBird\"
-          netbird up --setup-key "${{ secrets.NETBIRD_SETUP_KEY }}"
-          netbird status
+          & "C:\Program Files\NetBird\netbird.exe" up --setup-key "${{ secrets.NETBIRD_SETUP_KEY }}"
+          & "C:\Program Files\NetBird\netbird.exe" status
 
       - name: Create RDP User and Enable RDP
         shell: pwsh
@@ -57,7 +56,7 @@ jobs:
       - name: Show NetBird IP
         shell: pwsh
         run: |
-          netbird status | Select-String "NetBird IP"
+          & "C:\Program Files\NetBird\netbird.exe" status | Select-String "NetBird IP"
 
       - name: Keep RDP Session Alive
         shell: pwsh
