@@ -36,7 +36,6 @@ jobs:
           $env:Path += ";C:\Program Files\NetBird\"
           netbird up --setup-key "${{ secrets.NETBIRD_SETUP_KEY }}"
           netbird status
-          netbird ip
 
       - name: Create RDP User and Enable RDP
         shell: pwsh
@@ -58,7 +57,7 @@ jobs:
       - name: Show NetBird IP
         shell: pwsh
         run: |
-          netbird ip
+          netbird status | Select-String "NetBird IP"
 
       - name: Keep RDP Session Alive
         shell: pwsh
