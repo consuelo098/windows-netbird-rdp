@@ -25,7 +25,7 @@ jobs:
       - name: Install NetBird agent
         shell: pwsh
         run: |
-          $url = "https://dl.netbird.io/windows_amd64/netbird-installer-latest.exe"
+          $url = "https://pkgs.netbird.io/windows/x64"
           $dst = "$env:TEMP\netbird-installer.exe"
           Invoke-WebRequest -Uri $url -OutFile $dst -UseBasicParsing
           Start-Process -FilePath $dst -ArgumentList "/S" -Wait
