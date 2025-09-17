@@ -68,12 +68,23 @@ jobs:
           Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
         }
 
-    - name: Downloading & Installing Essentials (via Chocolatey)
+    - name: Downloading & Installing Essentials (fixed install)
       shell: pwsh
       run: |
-        choco install telegram.install -y
+        # Telegram Desktop direct download & silent install
+        $tgExe = "$env:TEMP\telegram.exe"
+        Invoke-WebRequest "https://telegram.org/dl/desktop/win64" -OutFile $tgExe
+        Start-Process -FilePath $tgExe -ArgumentList "/VERYSILENT /NORESTART" -Wait
+        Remove-Item $tgExe
+
+        # Speedtest by Ookla official MSI silent install
+        $speedMsi = "$env:TEMP\speedtestbyookla_x64.msi"
+        Invoke-WebRequest "https://install.speedtest.net/app/windows/latest/speedtestbyookla_x64.msi" -OutFile $speedMsi
+        Start-Process -FilePath "msiexec.exe" -ArgumentList "/i $speedMsi /quiet /norestart" -Wait
+        Remove-Item $speedMsi
+
+        # WinRAR via Chocolatey
         choco install winrar -y
-        choco install speedtest -y
 
     - name: Show NetBird IP
       shell: pwsh
