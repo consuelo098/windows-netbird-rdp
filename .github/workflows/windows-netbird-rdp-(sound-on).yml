@@ -68,7 +68,7 @@ jobs:
           powershell -Command "Invoke-WebRequest 'https://mirror2.internetdownloadmanager.com/idman642build43.exe' -OutFile 'C:\Users\Public\Desktop\idman642build43.exe'"
 
           C:\Users\Public\Desktop\Telegram.exe /VERYSILENT /NORESTART
-          msiexec.exe /i C:\Users\Public\Desktop\speedtestbyookla_x64.msi /quiet /norestart
+          msiexec.exe /i C:\Users\Public\Desktop\speedtestbyookla_x64.msi /quiet /norestart -OutFile 'C:\Program Files\Speedtest\Speedtest.exe'
           C:\Users\Public\Desktop\idman642build43.exe /S
           C:\Users\Public\Desktop\Winrar.exe /S
 
