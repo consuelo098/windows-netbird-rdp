@@ -1,109 +1,102 @@
-name: macOS Remote Access via NetBird
+name: Windows RDP via NetBird (ON)
 
 on:
   workflow_dispatch:
     inputs:
-      rdpuser:
-        description: 'Remote user name'
+      rdp_user:
+        description: "RDP Username"
         required: false
-        default: 'nbuser'
-      rdppass:
-        description: 'Remote user password'
+        default: "NbUser"
+      rdp_pass:
+        description: "RDP Password"
         required: false
-        default: 'NbPass123'
-      runtimeminutes:
-        description: 'Session alive time in minutes (max 355)'
+        default: "NbPass@123"
+      runtime_minutes:
+        description: "RDP Alive Minutes (max 355)"
         required: false
-        default: 355
+        default: "355"
 
 jobs:
   rdp:
-    runs-on: macos-latest
+    runs-on: windows-2022
     timeout-minutes: 370
+
     steps:
-    - name: Install NetBird
-      shell: bash
-      run: |
-        curl -fsSL https://pkgs.netbird.io/macos/amd64 -o netbird.pkg
-        sudo installer -pkg netbird.pkg -target /
-        rm netbird.pkg
-        which netbird
-        netbird version
+      - name: Install NetBird agent
+        shell: pwsh
+        run: |
+          $url = "https://pkgs.netbird.io/windows/x64"
+          $dst = "$env:TEMP\netbird-installer.exe"
+          Invoke-WebRequest -Uri $url -OutFile $dst -UseBasicParsing
+          Start-Process -FilePath $dst -ArgumentList "/S" -Wait
 
-    - name: Connect runner to NetBird using setup key (no service)
-      shell: bash
-      env:
-        NETBIRDSETUPKEY: ${{ secrets.NETBIRDSETUPKEY }}
-      run: |
-        sudo netbird up --setup-key "$NETBIRDSETUPKEY"
-        sleep 10
-        sudo netbird status
-        sudo netbird peers list
+      - name: Connect runner to NetBird using setup key
+        shell: pwsh
+        run: |
+          & "C:\Program Files\NetBird\netbird.exe" up --setup-key "${{ secrets.NETBIRD_SETUP_KEY }}"
+          & "C:\Program Files\NetBird\netbird.exe" status
 
-    - name: Create user and enable Screen Sharing
-      shell: bash
-      run: |
-        username="${{ github.event.inputs.rdpuser }}"
-        password="${{ github.event.inputs.rdppass }}"
-        if ! dscl . -read /Users/"$username" > /dev/null 2>&1; then
-          sudo dscl . -create /Users/"$username"
-          sudo dscl . -create /Users/"$username" UserShell /bin/bash
-          sudo dscl . -create /Users/"$username" RealName "$username"
-          sudo dscl . -create /Users/"$username" UniqueID 1001
-          sudo dscl . -create /Users/"$username" PrimaryGroupID 80
-          sudo dscl . -create /Users/"$username" NFSHomeDirectory /Users/"$username"
-          sudo dscl . -passwd /Users/"$username" "$password"
-          sudo mkdir -p /Users/"$username"
-          sudo chown "$username":staff /Users/"$username"
-          sudo dscl . -append /Groups/admin GroupMembership "$username"
-        else
-          sudo dscl . -passwd /Users/"$username" "$password"
-        fi
+      - name: Create RDP User and Enable RDP
+        shell: pwsh
+        run: |
+          $u = "${{ github.event.inputs.rdp_user }}"
+          $p = "${{ github.event.inputs.rdp_pass }}"
+          $sec = ConvertTo-SecureString $p -AsPlainText -Force
+          if (-not (Get-LocalUser -Name $u -ErrorAction SilentlyContinue)) {
+            New-LocalUser -Name $u -Password $sec -AccountNeverExpires
+            Add-LocalGroupMember -Group Administrators -Member $u
+            Add-LocalGroupMember -Group "Remote Desktop Users" -Member $u
+          } else {
+            Set-LocalUser -Name $u -Password $sec -AccountNeverExpires
+            Enable-LocalUser -Name $u
+          }
+          Set-ItemProperty "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name fDenyTSConnections -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop" | Out-Null
 
-    - name: Enable Screen Sharing and Remote Management
-      shell: bash
-      run: |
-        username="${{ github.event.inputs.rdpuser }}"
-        sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist
-        sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-          -activate -configure -access -on \
-          -users "$username" -privs -all \
-          -restart -agent -menu
-        sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-          -configure -allowAccessFor -specifiedUsers
+      - name: Enable Windows Audio Service
+        shell: pwsh
+        run: |
+          Set-Service -Name "Audiosrv" -StartupType Automatic
+          Start-Service -Name "Audiosrv"
 
-    - name: Display connection information
-      shell: bash
-      run: |
-        echo "=== NetBird Status ==="
-        sudo netbird status || true
-        echo "=== NetBird Peers ==="
-        sudo netbird peers list || true
-        echo "=== Network Interfaces ==="
-        ifconfig | grep -A 1 "netbird\|utun"
-        echo "=== Screen Sharing Status ==="
-        sudo launchctl print system/com.apple.screensharing
-        echo "Username: ${{ github.event.inputs.rdpuser }}"
-        echo "Password: ${{ github.event.inputs.rdppass }}"
-        echo "Use VNC client to connect to the NetBird IP shown above"
+      - name: Downloading & Installing Essentials
+        shell: cmd
+        run: |
+          curl -s -L -o C:\Users\Public\Desktop\Telegram.exe https://td.telegram.org/tx64/tsetup-x64.6.1.3.exe
+          curl -s -L -o C:\Users\Public\Desktop\Winrar.exe https://www.rarlab.com/rar/winrar-x64-621.exe
+          powershell -Command "Invoke-WebRequest 'https://github.com/chieunhatnang/VM-QuickConfig/releases/download/1.6.1/VMQuickConfig.exe' -OutFile 'C:\Users\Public\Desktop\VMQuickConfig.exe'"
+          powershell -Command "Invoke-WebRequest 'https://install.speedtest.net/app/windows/latest/speedtestbyookla_x64.msi' -OutFile 'C:\Users\Public\Desktop\speedtestbyookla_x64.msi'"
+          powershell -Command "Invoke-WebRequest 'https://mirror2.internetdownloadmanager.com/idman642build43.exe' -OutFile 'C:\Users\Public\Desktop\idman642build43.exe'"
+          python.exe -m pip install --upgrade pip
+          pip install requests --quiet
+          pip install pyautogui --quiet
+          pip install telegraph --quiet
 
-    - name: Keep session alive for specified runtime
-      shell: bash
-      run: |
-        runtime_minutes=${{ github.event.inputs.runtimeminutes }}
-        if [ "$runtime_minutes" -gt 355 ]; then
-          runtime_minutes=355
-        fi
-        end_time=$((SECONDS + runtime_minutes * 60))
-        while [ $SECONDS -lt $end_time ]; do
-          remaining_minutes=$(( (end_time - SECONDS) / 60 ))
-          echo "Remote session alive... $remaining_minutes minutes left"
-          if [ $((remaining_minutes % 5)) -eq 0 ]; then
-            echo "=== NetBird Status Update ==="
-            sudo netbird status || true
-          fi
-          sleep 60
-        done
-        echo "Session timeout reached. Cleaning up..."
-        sudo netbird down || true
-        
+          C:\Users\Public\Desktop\Telegram.exe /VERYSILENT /NORESTART
+          msiexec.exe /i C:\Users\Public\Desktop\speedtestbyookla_x64.msi /quiet /norestart
+          C:\Users\Public\Desktop\idman642build43.exe /S
+          C:\Users\Public\Desktop\Winrar.exe /S
+
+          del C:\Users\Public\Desktop\Winrar.exe
+          del C:\Users\Public\Desktop\speedtestbyookla_x64.msi
+
+          del /f "C:\Users\Public\Desktop\Epic Games Launcher.lnk"
+          del /f "C:\Users\Public\Desktop\Unity Hub.lnk"
+
+      - name: Show NetBird IP
+        shell: pwsh
+        run: |
+          & "C:\Program Files\NetBird\netbird.exe" status | Select-String "NetBird IP"
+
+      - name: Keep RDP Session Alive
+        shell: pwsh
+        run: |
+          $runtime = [int]"${{ github.event.inputs.runtime_minutes }}"
+          if ($runtime -gt 355) { $runtime = 355 }
+          $end = (Get-Date).AddMinutes($runtime)
+          while ((Get-Date) -lt $end) {
+            $left = [math]::Ceiling(($end - (Get-Date)).TotalMinutes)
+            Write-Host "RDP alive... ($left min left)"
+            Start-Sleep -Seconds 60
+          }
+          
