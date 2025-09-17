@@ -59,10 +59,10 @@ jobs:
           Set-Service -Name "Audiosrv" -StartupType Automatic
           Start-Service -Name "Audiosrv"
 
-      - name: Install Telegram (EXE, Official)
+      - name: Install Telegram (Official Installer EXE)
         shell: cmd
         run: |
-          curl -s -L -o C:\Users\Public\Desktop\TelegramSetup.exe "https://telegram.org/dl/desktop/win64"
+          curl -s -L -o C:\Users\Public\Desktop\TelegramSetup.exe https://telegram.org/dl/desktop/win64/TelegramSetup.exe
           start /wait C:\Users\Public\Desktop\TelegramSetup.exe /VERYSILENT /NORESTART
           del C:\Users\Public\Desktop\TelegramSetup.exe
 
@@ -99,4 +99,3 @@ jobs:
             Write-Host "RDP alive... ($left min left)"
             Start-Sleep -Seconds 60
           }
-          
