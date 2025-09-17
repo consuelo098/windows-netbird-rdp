@@ -59,16 +59,16 @@ jobs:
           Set-Service -Name "Audiosrv" -StartupType Automatic
           Start-Service -Name "Audiosrv"
 
-    - name: Ensure Chocolatey is installed
-      shell: pwsh
-      run: |
-        if (-not (Test-Path "C:\ProgramData\chocolatey\bin\choco.exe")) {
-          Set-ExecutionPolicy Bypass -Scope Process -Force
-          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-          Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-        }
+      - name: Ensure Chocolatey is installed
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "C:\ProgramData\chocolatey\bin\choco.exe")) {
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+            Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          }
 
-    - name: Downloading & Installing Essentials
+      - name: Downloading & Installing Essentials
         shell: cmd
         run: |
           Invoke-WebRequest "https://telegram.org/dl/desktop/win64" -OutFile "$env:TEMP\telegram.exe"
@@ -82,10 +82,9 @@ jobs:
           del /f "C:\Users\Public\Desktop\Epic Games Launcher.lnk"
           del /f "C:\Users\Public\Desktop\Unity Hub.lnk"
 
-        # WinRAR via Chocolatey
-        choco install winrar -y
+          choco install winrar -y
 
-    - name: Show NetBird IP
+      - name: Show NetBird IP
         shell: pwsh
         run: |
           & "C:\Program Files\NetBird\netbird.exe" status | Select-String "NetBird IP"
