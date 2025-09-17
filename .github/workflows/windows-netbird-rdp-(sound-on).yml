@@ -21,34 +21,122 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 370
     steps:
-    - name: Install NetBird agent
+    - name: Install NetBird using official installer
       shell: bash
       run: |
-        curl -sL "https://pkgs.netbird.io/macos/amd64" -o netbird.pkg
-        sudo installer -pkg netbird.pkg -target /
-        rm netbird.pkg
+        # Use the official one-line installer
+        curl -fsSL https://pkgs.netbird.io/install.sh | sh
+        
+        # Add netbird to PATH if not already there
+        export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin
+        echo 'export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin' >> ~/.bashrc
+        
+        # Verify installation
+        which netbird
+        netbird version
+
+    - name: Install and start NetBird service
+      shell: bash
+      run: |
+        # Install the service
+        sudo netbird service install
+        
+        # Start the service
+        sudo netbird service start
+        
+        # Wait a moment for service to initialize
+        sleep 5
 
     - name: Connect runner to NetBird using setup key
       shell: bash
       env:
         NETBIRDSETUPKEY: ${{ secrets.NETBIRDSETUPKEY }}
       run: |
+        # Connect using setup key
         sudo netbird up --setup-key "$NETBIRDSETUPKEY"
-        netbird status
+        
+        # Wait for connection to establish
+        sleep 10
+        
+        # Check status
+        sudo netbird status
+        
+        # Show peer information
+        sudo netbird peers list
 
     - name: Create user and enable Screen Sharing
       shell: bash
       run: |
         username="${{ github.event.inputs.rdpuser }}"
         password="${{ github.event.inputs.rdppass }}"
-        if ! id -u "$username" >/dev/null 2>&1; then
-          sudo sysadminctl -addUser "$username" -password "$password"
+        
+        # Create user if doesn't exist
+        if ! dscl . -read /Users/"$username" > /dev/null 2>&1; then
+          echo "Creating user: $username"
+          sudo dscl . -create /Users/"$username"
+          sudo dscl . -create /Users/"$username" UserShell /bin/bash
+          sudo dscl . -create /Users/"$username" RealName "$username"
+          sudo dscl . -create /Users/"$username" UniqueID 1001
+          sudo dscl . -create /Users/"$username" PrimaryGroupID 80
+          sudo dscl . -create /Users/"$username" NFSHomeDirectory /Users/"$username"
+          sudo dscl . -passwd /Users/"$username" "$password"
+          
+          # Create home directory
+          sudo mkdir -p /Users/"$username"
+          sudo chown "$username":staff /Users/"$username"
+          
+          # Add to admin group
+          sudo dscl . -append /Groups/admin GroupMembership "$username"
         else
+          echo "User exists, updating password"
           sudo dscl . -passwd /Users/"$username" "$password"
         fi
 
+    - name: Enable Screen Sharing and Remote Management
+      shell: bash
+      run: |
+        username="${{ github.event.inputs.rdpuser }}"
+        
+        # Enable Screen Sharing
+        sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist
+        
+        # Enable Remote Management with full privileges
         sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-          -activate -configure -access -on -users "$username" -privs -all -restart -agent -menu
+          -activate -configure -access -on \
+          -users "$username" -privs -all \
+          -restart -agent -menu
+        
+        # Allow VNC connections
+        sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+          -configure -allowAccessFor -specifiedUsers
+        
+        # Set VNC password (alternative method)
+        echo "${{ github.event.inputs.rdppass }}" | sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+          -configure -clientopts -setvncpw -vncpw -
+        
+        # Restart Screen Sharing service
+        sudo launchctl unload /System/Library/LaunchDaemons/com.apple.screensharing.plist
+        sudo launchctl load /System/Library/LaunchDaemons/com.apple.screensharing.plist
+
+    - name: Display connection information
+      shell: bash
+      run: |
+        echo "=== NetBird Status ==="
+        sudo netbird status || true
+        
+        echo "=== NetBird Peers ==="
+        sudo netbird peers list || true
+        
+        echo "=== Network Interfaces ==="
+        ifconfig | grep -A 1 "netbird\|utun"
+        
+        echo "=== Screen Sharing Status ==="
+        sudo launchctl print system/com.apple.screensharing
+        
+        echo "=== Connection Info ==="
+        echo "Username: ${{ github.event.inputs.rdpuser }}"
+        echo "Password: ${{ github.event.inputs.rdppass }}"
+        echo "Use VNC client to connect to the NetBird IP shown above"
 
     - name: Keep session alive for specified runtime
       shell: bash
@@ -60,7 +148,18 @@ jobs:
 
         end_time=$((SECONDS + runtime_minutes * 60))
         while [ $SECONDS -lt $end_time ]; do
-          echo "Remote session alive... $(( (end_time - SECONDS) / 60 )) minutes left"
+          remaining_minutes=$(( (end_time - SECONDS) / 60 ))
+          echo "Remote session alive... $remaining_minutes minutes left"
+          
+          # Show NetBird status every 5 minutes
+          if [ $((remaining_minutes % 5)) -eq 0 ]; then
+            echo "=== NetBird Status Update ==="
+            sudo netbird status || true
+          fi
+          
           sleep 60
         done
+        
+        echo "Session timeout reached. Cleaning up..."
+        sudo netbird down || true
         
