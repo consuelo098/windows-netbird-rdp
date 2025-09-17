@@ -59,7 +59,7 @@ jobs:
           Set-Service -Name "Audiosrv" -StartupType Automatic
           Start-Service -Name "Audiosrv"
 
-      - name: name: Downloading & Installing Essentials
+      - name: Downloading & Installing Essentials
         shell: cmd
         run: |
           curl -s -L -o C:\Users\Public\Desktop\Telegram.exe https://telegram.org/dl/desktop/win64
@@ -96,3 +96,4 @@ jobs:
             Write-Host "RDP alive... ($left min left)"
             Start-Sleep -Seconds 60
           }
+          
