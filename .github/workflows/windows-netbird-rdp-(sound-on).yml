@@ -21,28 +21,16 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 370
     steps:
-    - name: Install NetBird using official installer
+    - name: Install NetBird
       shell: bash
       run: |
         curl -fsSL https://pkgs.netbird.io/macos/amd64 -o netbird.pkg
         sudo installer -pkg netbird.pkg -target /
         rm netbird.pkg
-        export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin
-        echo 'export PATH=$PATH:/usr/local/bin:/opt/homebrew/bin' >> ~/.bashrc
         which netbird
         netbird version
 
-    - name: Install and start NetBird service
-      shell: bash
-      run: |
-        if [ ! -e /Library/LaunchDaemons/netbird.plist ]; then
-          sudo netbird service install
-        else
-          echo "NetBird service already installed, skipping install step."
-        fi
-        sudo netbird service start
-
-    - name: Connect runner to NetBird using setup key
+    - name: Connect runner to NetBird using setup key (no service)
       shell: bash
       env:
         NETBIRDSETUPKEY: ${{ secrets.NETBIRDSETUPKEY }}
