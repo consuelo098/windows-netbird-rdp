@@ -20,78 +20,74 @@ jobs:
   rdp:
     runs-on: windows-2022
     timeout-minutes: 370
-
     steps:
-      - name: Install NetBird agent
-        shell: pwsh
-        run: |
-          $url = "https://pkgs.netbird.io/windows/x64"
-          $dst = "$env:TEMP\netbird-installer.exe"
-          Invoke-WebRequest -Uri $url -OutFile $dst -UseBasicParsing
-          Start-Process -FilePath $dst -ArgumentList "/S" -Wait
 
-      - name: Connect runner to NetBird using setup key
-        shell: pwsh
-        run: |
-          & "C:\Program Files\NetBird\netbird.exe" up --setup-key "${{ secrets.NETBIRD_SETUP_KEY }}"
-          & "C:\Program Files\NetBird\netbird.exe" status
+    - name: Install NetBird agent
+      shell: pwsh
+      run: |
+        $url = "https://pkgs.netbird.io/windows/x64"
+        $dst = "$env:TEMP\netbird-installer.exe"
+        Invoke-WebRequest -Uri $url -OutFile $dst -UseBasicParsing
+        Start-Process -FilePath $dst -ArgumentList "/S" -Wait
 
-      - name: Create RDP User and Enable RDP
-        shell: pwsh
-        run: |
-          $u = "${{ github.event.inputs.rdp_user }}"
-          $p = "${{ github.event.inputs.rdp_pass }}"
-          $sec = ConvertTo-SecureString $p -AsPlainText -Force
-          if (-not (Get-LocalUser -Name $u -ErrorAction SilentlyContinue)) {
-            New-LocalUser -Name $u -Password $sec -AccountNeverExpires
-            Add-LocalGroupMember -Group Administrators -Member $u
-            Add-LocalGroupMember -Group "Remote Desktop Users" -Member $u
-          } else {
-            Set-LocalUser -Name $u -Password $sec -AccountNeverExpires
-            Enable-LocalUser -Name $u
-          }
-          Set-ItemProperty "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name fDenyTSConnections -Value 0
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop" | Out-Null
+    - name: Connect runner to NetBird using setup key
+      shell: pwsh
+      run: |
+        & "C:\Program Files\NetBird\netbird.exe" up --setup-key "${{ secrets.NETBIRD_SETUP_KEY }}"
+        & "C:\Program Files\NetBird\netbird.exe" status
 
-      - name: Enable Windows Audio Service
-        shell: pwsh
-        run: |
-          Set-Service -Name "Audiosrv" -StartupType Automatic
-          Start-Service -Name "Audiosrv"
+    - name: Create RDP User and Enable RDP
+      shell: pwsh
+      run: |
+        $u = "${{ github.event.inputs.rdp_user }}"
+        $p = "${{ github.event.inputs.rdp_pass }}"
+        $sec = ConvertTo-SecureString $p -AsPlainText -Force
+        if (-not (Get-LocalUser -Name $u -ErrorAction SilentlyContinue)) {
+          New-LocalUser -Name $u -Password $sec -AccountNeverExpires
+          Add-LocalGroupMember -Group Administrators -Member $u
+          Add-LocalGroupMember -Group "Remote Desktop Users" -Member $u
+        } else {
+          Set-LocalUser -Name $u -Password $sec -AccountNeverExpires
+          Enable-LocalUser -Name $u
+        }
+        Set-ItemProperty "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name fDenyTSConnections -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop" | Out-Null
 
-      - name: Downloading & Installing Essentials
-        shell: cmd
-        run: |
-          curl -s -L -o C:\Users\Public\Desktop\Telegram.exe https://telegram.org/dl/desktop/win64
-          curl -s -L -o C:\Users\Public\Desktop\Winrar.exe https://www.rarlab.com/rar/winrar-x64-621.exe
-          powershell -Command "Invoke-WebRequest 'https://install.speedtest.net/app/windows/latest/speedtestbyookla_x64.msi' -OutFile 'C:\Users\Public\Desktop\speedtestbyookla_x64.msi'"
-          powershell -Command "Invoke-WebRequest 'https://mirror2.internetdownloadmanager.com/idman642build43.exe' -OutFile 'C:\Users\Public\Desktop\idman642build43.exe'"
+    - name: Enable Windows Audio Service
+      shell: pwsh
+      run: |
+        Set-Service -Name "Audiosrv" -StartupType Automatic
+        Start-Service -Name "Audiosrv"
 
-          C:\Users\Public\Desktop\Telegram.exe /VERYSILENT /NORESTART
-          msiexec.exe /i C:\Users\Public\Desktop\speedtestbyookla_x64.msi /quiet /norestart -OutFile 'C:\Program Files\Speedtest\Speedtest.exe'
-          C:\Users\Public\Desktop\idman642build43.exe /S
-          C:\Users\Public\Desktop\Winrar.exe /S
+    - name: Install Chocolatey
+      shell: pwsh
+      run: |
+        Set-ExecutionPolicy Bypass -Scope Process -Force
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 
-          del C:\Users\Public\Desktop\Winrar.exe
-          del C:\Users\Public\Desktop\speedtestbyookla_x64.msi
+    - name: Downloading & Installing Essentials (via Chocolatey)
+      shell: pwsh
+      run: |
+        choco install telegram -y
+        choco install winrar -y
+        choco install speedtest -y
+        choco install internetdownloadmanager -y
 
-          del /f "C:\Users\Public\Desktop\Epic Games Launcher.lnk"
-          del /f "C:\Users\Public\Desktop\Unity Hub.lnk"
+    - name: Show NetBird IP
+      shell: pwsh
+      run: |
+        & "C:\Program Files\NetBird\netbird.exe" status | Select-String "NetBird IP"
 
-      - name: Show NetBird IP
-        shell: pwsh
-        run: |
-          & "C:\Program Files\NetBird\netbird.exe" status | Select-String "NetBird IP"
-
-      - name: Keep RDP Session Alive
-        shell: pwsh
-        run: |
-          $runtime = [int]"${{ github.event.inputs.runtime_minutes }}"
-          if ($runtime -gt 355) { $runtime = 355 }
-          $end = (Get-Date).AddMinutes($runtime)
-          while ((Get-Date) -lt $end) {
-            $left = [math]::Ceiling(($end - (Get-Date)).TotalMinutes)
-            Write-Host "RDP alive... ($left min left)"
-            Start-Sleep -Seconds 60
-          }
-          
+    - name: Keep RDP Session Alive
+      shell: pwsh
+      run: |
+        $runtime = [int]"${{ github.event.inputs.runtime_minutes }}"
+        if ($runtime -gt 355) { $runtime = 355 }
+        $end = (Get-Date).AddMinutes($runtime)
+        while ((Get-Date) -lt $end) {
+          $left = [math]::Ceiling(($end - (Get-Date)).TotalMinutes)
+          Write-Host "RDP alive... ($left min left)"
+          Start-Sleep -Seconds 60
+        }
+        
