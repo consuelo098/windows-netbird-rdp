@@ -59,20 +59,21 @@ jobs:
         Set-Service -Name "Audiosrv" -StartupType Automatic
         Start-Service -Name "Audiosrv"
 
-    - name: Install Chocolatey
+    - name: Ensure Chocolatey is installed
       shell: pwsh
       run: |
-        Set-ExecutionPolicy Bypass -Scope Process -Force
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+        if (-not (Test-Path "C:\ProgramData\chocolatey\bin\choco.exe")) {
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+        }
 
     - name: Downloading & Installing Essentials (via Chocolatey)
       shell: pwsh
       run: |
-        choco install telegram -y
+        choco install telegram.install -y
         choco install winrar -y
         choco install speedtest -y
-        choco install internetdownloadmanager -y
 
     - name: Show NetBird IP
       shell: pwsh
@@ -89,5 +90,4 @@ jobs:
           $left = [math]::Ceiling(($end - (Get-Date)).TotalMinutes)
           Write-Host "RDP alive... ($left min left)"
           Start-Sleep -Seconds 60
-        }
-        
+          
