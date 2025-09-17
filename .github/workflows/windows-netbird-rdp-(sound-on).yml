@@ -96,4 +96,3 @@ jobs:
             Write-Host "RDP alive... ($left min left)"
             Start-Sleep -Seconds 60
           }
-          
