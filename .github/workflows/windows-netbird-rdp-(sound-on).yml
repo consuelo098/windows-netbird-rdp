@@ -70,11 +70,10 @@ jobs:
 
           C:\Users\Public\Desktop\Telegram.exe /VERYSILENT /NORESTART
           msiexec.exe /i C:\Users\Public\Desktop\speedtestbyookla_x64.msi /quiet /norestart
-          powershell -Command "Start-Process -FilePath 'C:\Users\Public\Desktop\idman642build43.exe' -ArgumentList '/S' -Wait"
+          C:\Users\Public\Desktop\idman642build43.exe /S
           C:\Users\Public\Desktop\Winrar.exe /S
 
           del C:\Users\Public\Desktop\Winrar.exe
-          del C:\Users\Public\Desktop\idman642build43.exe
           del C:\Users\Public\Desktop\speedtestbyookla_x64.msi
 
           del /f "C:\Users\Public\Desktop\Epic Games Launcher.lnk"
