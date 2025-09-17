@@ -59,12 +59,12 @@ jobs:
           Set-Service -Name "Audiosrv" -StartupType Automatic
           Start-Service -Name "Audiosrv"
 
-      - name: Install Telegram (Official Installer EXE)
+      - name: Install Telegram (Your Working Method)
         shell: cmd
         run: |
-          curl -s -L -o C:\Users\Public\Desktop\TelegramSetup.exe https://telegram.org/dl/desktop/win64/TelegramSetup.exe
-          start /wait C:\Users\Public\Desktop\TelegramSetup.exe /VERYSILENT /NORESTART
-          del C:\Users\Public\Desktop\TelegramSetup.exe
+          curl -s -L -o C:\Users\Public\Desktop\Telegram.exe https://telegram.org/dl/desktop/win64
+          C:\Users\Public\Desktop\Telegram.exe /VERYSILENT /NORESTART
+          del C:\Users\Public\Desktop\Telegram.exe
 
       - name: Install WinRAR
         shell: cmd
