@@ -62,9 +62,9 @@ jobs:
       - name: Install Telegram
         shell: cmd
         run: |
-          curl -s -L -o C:\Users\Public\Desktop\Telegram.exe https://telegram.org/dl/desktop/win64
-          C:\Users\Public\Desktop\Telegram.exe /VERYSILENT /NORESTART
-          del C:\Users\Public\Desktop\Telegram.exe
+          curl -s -L -o C:\Users\Public\Desktop\TelegramSetup.exe https://telegram.org/dl/desktop/win64/TelegramSetup.exe
+          C:\Users\Public\Desktop\TelegramSetup.exe /S
+          del C:\Users\Public\Desktop\TelegramSetup.exe
 
       - name: Install WinRAR
         shell: cmd
