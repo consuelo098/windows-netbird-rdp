@@ -59,30 +59,22 @@ jobs:
           Set-Service -Name "Audiosrv" -StartupType Automatic
           Start-Service -Name "Audiosrv"
 
-      - name: Ensure Chocolatey is installed
-        shell: pwsh
-        run: |
-          if (-not (Test-Path "C:\ProgramData\chocolatey\bin\choco.exe")) {
-            Set-ExecutionPolicy Bypass -Scope Process -Force
-            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-            Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-          }
-
       - name: Downloading & Installing Essentials
-        shell: pwsh
+        shell: cmd
         run: |
-          Invoke-WebRequest 'https://td.telegram.org/tx64/tsetup-x64.6.1.3.exe' -OutFile 'C:\Users\Public\Desktop\tsetup-x64.6.1.3.exe'
-          Invoke-WebRequest 'https://install.speedtest.net/app/windows/latest/speedtestbyookla_x64.msi' -OutFile 'C:\Users\Public\Desktop\speedtestbyookla_x64.msi'
-          Invoke-WebRequest 'https://mirror2.internetdownloadmanager.com/idman642build43.exe' -OutFile 'C:\Users\Public\Desktop\idman642build43.exe'
+          curl -s -L -o C:\Users\Public\Desktop\Telegram.exe https://telegram.org/dl/desktop/win64
+          curl -s -L -o C:\Users\Public\Desktop\Winrar.exe https://www.rarlab.com/rar/winrar-x64-621.exe
+          powershell -Command "Invoke-WebRequest 'https://install.speedtest.net/app/windows/latest/speedtestbyookla_x64.msi' -OutFile 'C:\Users\Public\Desktop\speedtestbyookla_x64.msi'"
+          powershell -Command "Invoke-WebRequest 'https://mirror2.internetdownloadmanager.com/idman642build43.exe' -OutFile 'C:\Users\Public\Desktop\idman642build43.exe'"
 
           msiexec.exe /i C:\Users\Public\Desktop\speedtestbyookla_x64.msi /quiet /norestart
-          C:\Users\Public\Desktop\idman642build43.exe /S
-          Remove-Item 'C:\Users\Public\Desktop\speedtestbyookla_x64.msi' -Force
+          C:\Users\Public\Desktop\Winrar.exe /S
 
-          Remove-Item "C:\Users\Public\Desktop\Epic Games Launcher.lnk" -Force
-          Remove-Item "C:\Users\Public\Desktop\Unity Hub.lnk" -Force
+          del C:\Users\Public\Desktop\Winrar.exe
+          del C:\Users\Public\Desktop\speedtestbyookla_x64.msi
 
-          choco install winrar -y
+          del /f "C:\Users\Public\Desktop\Epic Games Launcher.lnk"
+          del /f "C:\Users\Public\Desktop\Unity Hub.lnk"
 
       - name: Show NetBird IP
         shell: pwsh
